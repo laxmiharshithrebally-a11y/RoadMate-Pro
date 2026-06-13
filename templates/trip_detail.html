@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.source }} to {{ trip.destination }} – RoadMate Pro{% endblock %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-2">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Trip Detail</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <h2 class="fw-bold mb-1">
+      {{ trip.source }} <i class="bi bi-arrow-right text-primary"></i> {{ trip.destination }}
+    </h2>
+    <p class="text-muted mb-0">
+      <i class="bi bi-calendar3 me-1"></i>{{ trip.created_at[:10] }}
+      &bull; <span class="badge bg-success-subtle text-success">{{ trip.status.title() }}</span>
+      &bull; <span class="badge bg-primary-subtle text-primary">{{ trip.accommodation_budget.title() }} Budget</span>
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('plan_trip_route') }}" class="btn btn-outline-primary rounded-3">
+      <i class="bi bi-plus me-1"></i>New Trip
+    </a>
+    <a href="{{ url_for('download_pdf', trip_id=trip.id) }}" class="btn btn-danger rounded-3">
+      <i class="bi bi-file-pdf me-1"></i>PDF Report
+    </a>
+    <button class="btn btn-outline-secondary rounded-3" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>Print
+    </button>
+    <form method="POST" action="{{ url_for('delete_trip', trip_id=trip.id) }}"
+          onsubmit="return confirm('Delete this trip?')">
+      <button class="btn btn-outline-danger rounded-3">
+        <i class="bi bi-trash me-1"></i>Delete
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+
+
+    <!-- ROUTE OVERVIEW -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-4"><i class="bi bi-map-fill text-primary me-2"></i>Route Overview</h5>
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="bg-primary-subtle text-primary rounded-3 p-3 text-center">
+              <div class="fs-4 fw-bold">{{ trip.distance_km|int }} km</div>
+              <div class="small opacity-75">Total Distance</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="bg-info-subtle text-info rounded-3 p-3 text-center">
+              <div class="fs-4 fw-bold">{{ trip.estimated_duration_hours }}h</div>
+              <div class="small opacity-75">Est. Drive Time</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="bg-success-subtle text-success rounded-3 p-3 text-center">
+              <div class="fs-4 fw-bold">{{ trip.travel_days }} days</div>
+              <div class="small opacity-75">Travel Days</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="bg-warning-subtle text-warning rounded-3 p-3 text-center">
+              <div class="fs-4 fw-bold">{{ costs.nights }} nights</div>
+              <div class="small opacity-75">Hotel Nights</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-light rounded-3 p-4 mb-4">
+          <div class="d-flex align-items-center">
+            <div class="text-center" style="min-width:90px;">
+              <div class="route-dot bg-success mx-auto"></div>
+              <div class="fw-bold mt-2 small">{{ trip.source }}</div>
+              <div class="text-muted" style="font-size:0.7rem;">START</div>
+            </div>
+            <div class="flex-grow-1 mx-3">
+              <div class="progress mb-2" style="height:8px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%"></div>
+              </div>
+              <div class="text-center text-muted small">
+                {{ trip.distance_km|int }} km &bull; {{ trip.estimated_duration_hours }}h &bull; Rs.{{ costs.cost_per_km|int }}/km
+              </div>
+            </div>
+            <div class="text-center" style="min-width:90px;">
+              <div class="route-dot bg-danger mx-auto"></div>
+              <div class="fw-bold mt-2 small">{{ trip.destination }}</div>
+              <div class="text-muted" style="font-size:0.7rem;">END</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAP -->
+        <h6 class="fw-bold mb-2"><i class="bi bi-map text-success me-2"></i>Route Map</h6>
+        <div class="rounded-3 overflow-hidden border" style="height:280px;">
+          <iframe width="100%" height="280" style="border:0;" loading="lazy"
+            src="https://maps.google.com/maps?q={{ trip.source }},India+to+{{ trip.destination }},India&t=&z=7&ie=UTF8&iwloc=&output=embed"
+            allowfullscreen></iframe>
+        </div>
+        <p class="text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>Map shows approximate location. Actual route may vary.</p>
+      </div>
+    </div>
+
+    <!-- COST BREAKDOWN -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-4"><i class="bi bi-cash-stack text-success me-2"></i>Complete Cost Breakdown</h5>
+        <div class="cost-row d-flex justify-content-between align-items-center py-3 border-bottom">
+          <div>
+            <i class="bi bi-fuel-pump-fill text-primary me-2"></i>
+            <span class="fw-semibold">Fuel Cost</span>
+            <div class="text-muted small ms-4">{{ costs.fuel_required_liters }} L x Rs.{{ trip.fuel_price }}/L</div>
+          </div>
+          <div class="fw-bold fs-5">Rs.{{ costs.fuel_cost|int }}</div>
+        </div>
+        <div class="cost-row d-flex justify-content-between align-items-center py-3 border-bottom">
+          <div>
+            <i class="bi bi-sign-stop-fill text-danger me-2"></i>
+            <span class="fw-semibold">Estimated Toll</span>
+            <div class="text-muted small ms-4">Rs.{{ costs.toll_rate_per_km }}/km x {{ trip.distance_km|int }} km</div>
+          </div>
+          <div class="fw-bold fs-5">Rs.{{ costs.toll_cost|int }}</div>
+        </div>
+        <div class="cost-row d-flex justify-content-between align-items-center py-3 border-bottom">
+          <div>
+            <i class="bi bi-building text-warning me-2"></i>
+            <span class="fw-semibold">Accommodation</span>
+            <div class="text-muted small ms-4">{{ costs.nights }} nights x Rs.{{ costs.avg_price_per_night|int }} avg ({{ trip.accommodation_budget|title }})</div>
+          </div>
+          <div class="fw-bold fs-5">Rs.{{ costs.accommodation_cost|int }}</div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center py-3 mt-2 bg-success-subtle rounded-3 px-3">
+          <div class="fw-bold fs-5"><i class="bi bi-calculator-fill me-2"></i>TOTAL TRIP COST</div>
+          <div class="fw-bold fs-3 text-success">Rs.{{ costs.total_cost|int }}</div>
+        </div>
+        <div class="mt-4">
+          {% set t = costs.total_cost %}
+          {% for lbl,val,c in [('Fuel',costs.fuel_cost,'primary'),('Tolls',costs.toll_cost,'danger'),('Stays',costs.accommodation_cost,'warning')] %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small mb-1">
+              <span class="fw-semibold">{{ lbl }}</span>
+              <span>Rs.{{ val|int }} ({{ val/t*100 }}%)</span>
+            </div>
+            <div class="progress" style="height:12px;border-radius:6px;">
+              <div class="progress-bar bg-{{ c }}" style="width:{{ (val/t*100)|int }}%;border-radius:6px;"></div>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="text-end mt-2"><small class="text-muted">Cost efficiency: <strong>Rs.{{ costs.cost_per_km }}/km</strong></small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-4"><i class="bi bi-pin-map-fill text-info me-2"></i>Route Resources</h5>
+        {% if resources.all %}
+          {% for cat,items in resources.grouped.items() %}{% if items %}
+          <h6 class="text-muted mb-2 mt-3">{{ items[0].icon }} {{ items[0].category_label }}</h6>
+          {% for r in items %}
+          <div class="d-flex align-items-start bg-light rounded-3 p-3 mb-2">
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ r.name }}</div>
+              <div class="text-muted small">📍 {{ r.city }} &bull; {{ r.distance_from_route_km }} km off-route &bull; ⭐ {{ r.rating }}/5</div>
+            </div>
+            {% if r.price_per_night %}
+            <span class="badge bg-success-subtle text-success ms-2 align-self-start">Rs.{{ r.price_per_night|int }}/night</span>
+            {% endif %}
+          </div>
+          {% endfor %}{% endif %}{% endfor %}
+        {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-geo-alt fs-2"></i>
+            <div class="mt-2">Generic highway resources apply.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col-lg-4">
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-car-front-fill text-primary me-2"></i>Vehicle Details</h6>
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Mileage</td><td class="fw-semibold text-end">{{ trip.vehicle_mileage }} km/L</td></tr>
+          <tr><td class="text-muted">Fuel Price</td><td class="fw-semibold text-end">Rs.{{ trip.fuel_price }}/L</td></tr>
+          <tr><td class="text-muted">Fuel Required</td><td class="fw-semibold text-end">{{ costs.fuel_required_liters }} L</td></tr>
+          <tr><td class="text-muted">Budget Band</td><td class="fw-semibold text-end">{{ trip.accommodation_budget.title() }}</td></tr>
+          <tr><td class="text-muted">Avg Stay/night</td><td class="fw-semibold text-end">Rs.{{ costs.avg_price_per_night|int }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4 text-white" style="background:linear-gradient(135deg,#1a73e8,#0d47a1);">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-text me-2"></i>Trip Report</h6>
+        <div class="row g-2 mb-3">
+          <div class="col-6"><div class="opacity-75 small">Report ID</div><div class="fw-semibold small">{{ report.report_id }}</div></div>
+          <div class="col-6"><div class="opacity-75 small">Traveler</div><div class="fw-semibold small">{{ report.traveler }}</div></div>
+          <div class="col-12"><div class="opacity-75 small">Date</div><div class="fw-semibold small">{{ report.generated_at[:10] }}</div></div>
+        </div>
+        <a href="{{ url_for('download_pdf', trip_id=trip.id) }}"
+           class="btn btn-light btn-sm w-100 rounded-3 fw-semibold mb-2">
+          <i class="bi bi-file-pdf text-danger me-1"></i>Download PDF Report
+        </a>
+        <a href="{{ url_for('api_report', trip_id=trip.id) }}" target="_blank"
+           class="btn btn-outline-light btn-sm w-100 rounded-3">
+          <i class="bi bi-download me-1"></i>Export JSON Report
+        </a>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Resources Found</h6>
+        {% for cat,cnt in resources.counts.items() %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-muted">
+            {% if cat=='fuel_station' %}⛽ Fuel Stations
+            {% elif cat=='hotel' %}🏨 Hotels
+            {% elif cat=='emergency' %}🏥 Emergency
+            {% else %}☕ Rest Stops{% endif %}
+          </span>
+          <span class="badge bg-primary rounded-pill fs-6">{{ cnt }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Quick Actions</h6>
+        <div class="d-grid gap-2">
+          <a href="{{ url_for('compare_trips') }}?t1={{ trip.id }}"
+             class="btn btn-outline-primary rounded-3">
+            <i class="bi bi-bar-chart me-2"></i>Compare with Another Trip
+          </a>
+          <a href="{{ url_for('trip_notes_page', trip_id=trip.id) }}"
+             class="btn btn-outline-warning rounded-3">
+            <i class="bi bi-journal-text me-2"></i>Notes &amp; Packing List
+          </a>
+          <a href="{{ url_for('plan_trip_route') }}" class="btn btn-outline-success rounded-3">
+            <i class="bi bi-plus-circle me-2"></i>Plan Another Trip
+          </a>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-3">
+            <i class="bi bi-speedometer2 me-2"></i>Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>RoadMate Pro — Intelligent Road Trip Planning</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+<link href="{{ url_for('static',filename='css/style.css') }}" rel="stylesheet"/>
+<style>
+/* ── HOME SPECIFIC ───────────────────────────────────────────── */
+body { overflow-x: hidden; }
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 80px 0 60px;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79,142,247,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 60%, rgba(167,139,250,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(34,211,165,0.08) 0%, transparent 60%);
+}
+body.dark-mode .hero-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79,142,247,0.25) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 60%, rgba(167,139,250,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(34,211,165,0.10) 0%, transparent 60%);
+}
+
+/* Floating orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: float 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.orb-1 { width:400px;height:400px; background:rgba(79,142,247,0.12); top:-100px; right:-100px; animation-delay:0s; }
+.orb-2 { width:300px;height:300px; background:rgba(167,139,250,0.10); bottom:-50px; left:-50px; animation-delay:2s; }
+.orb-3 { width:200px;height:200px; background:rgba(34,211,165,0.08); top:40%; right:20%; animation-delay:4s; }
+
+.hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(79,142,247,0.1);
+  border: 1px solid rgba(79,142,247,0.25);
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--blue);
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.6s ease both;
+}
+.hero-label .dot {
+  width: 6px; height: 6px;
+  background: var(--blue);
+  border-radius: 50%;
+  animation: pulse-ring 1.5s infinite;
+}
+
+.hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.hero-title .accent {
+  background: linear-gradient(135deg,#4f8ef7,#a78bfa,#22d3a5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-desc {
+  font-size: 1.15rem;
+  color: var(--text2);
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  max-width: 480px;
+  animation: fadeUp 0.6s 0.2s ease both;
+  font-weight: 400;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.6s 0.3s ease both;
+}
+.btn-hero-primary {
+  background: linear-gradient(135deg,#4f8ef7,#a78bfa);
+  color: white !important;
+  border: none !important;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(79,142,247,0.4);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.btn-hero-primary:hover {
+  box-shadow: 0 12px 48px rgba(79,142,247,0.6);
+  transform: translateY(-3px);
+}
+.btn-hero-secondary {
+  background: var(--glass);
+  border: 1.5px solid var(--border) !important;
+  color: var(--text) !important;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 14px !important;
+  backdrop-filter: blur(10px);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.btn-hero-secondary:hover {
+  border-color: var(--blue) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* HERO STATS */
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  margin-top: 3rem;
+  animation: fadeUp 0.6s 0.4s ease both;
+  flex-wrap: wrap;
+}
+.hero-stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.hero-stat-label {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 500;
+  margin-top: 2px;
+}
+.hero-stat-divider {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+}
+
+/* HERO CARD — 3D floating card */
+.hero-card-wrap {
+  perspective: 1000px;
+  animation: fadeUp 0.8s 0.2s ease both;
+}
+.hero-card-3d {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2rem;
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-3d), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  transform: rotateY(-8deg) rotateX(4deg);
+  transition: transform 0.5s ease;
+  position: relative;
+}
+.hero-card-3d:hover {
+  transform: rotateY(-2deg) rotateX(1deg);
+}
+.hero-card-3d::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent);
+  border-radius: 24px 24px 0 0;
+}
+.mini-stat {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: center;
+}
+.mini-stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.mini-stat-label {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 2px;
+  font-weight: 500;
+}
+.cost-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cost-pill-fuel   { background: rgba(79,142,247,0.12);  color: var(--blue); }
+.cost-pill-toll   { background: rgba(247,92,110,0.12);  color: var(--red); }
+.cost-pill-hotel  { background: rgba(251,191,36,0.12);  color: var(--amber); }
+.cost-pill-total  {
+  background: linear-gradient(135deg,rgba(79,142,247,0.2),rgba(167,139,250,0.15));
+  color: var(--text);
+  border: 1px solid rgba(79,142,247,0.25);
+}
+
+/* FEATURES SECTION */
+.section { padding: 100px 0; }
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2rem,4vw,3rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 1rem;
+}
+.section-sub {
+  font-size: 1.05rem;
+  color: var(--text2);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.feature-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2rem;
+  backdrop-filter: var(--blur);
+  transition: var(--transition);
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--grad-blue);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  transform-origin: left;
+}
+.feature-card:hover::before { transform: scaleX(1); }
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-3d);
+  border-color: rgba(79,142,247,0.3);
+}
+.feature-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 1.25rem;
+}
+.feature-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+.feature-desc {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.65;
+}
+
+/* FORMULA SECTION */
+.formula-section {
+  padding: 80px 0;
+  background: linear-gradient(135deg,rgba(79,142,247,0.06),rgba(167,139,250,0.04));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.formula-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 1.75rem;
+  backdrop-filter: var(--blur);
+  text-align: center;
+  transition: var(--transition);
+}
+.formula-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.formula-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+.formula-text {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  letter-spacing: 0.02em;
+  margin-bottom: 0.5rem;
+}
+.formula-result {
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* CTA SECTION */
+.cta-section {
+  padding: 100px 0;
+  text-align: center;
+}
+.cta-card {
+  background: linear-gradient(135deg,rgba(79,142,247,0.12),rgba(167,139,250,0.08));
+  border: 1px solid rgba(79,142,247,0.2);
+  border-radius: 28px;
+  padding: 4rem;
+  backdrop-filter: var(--blur);
+  position: relative;
+  overflow: hidden;
+}
+.cta-card::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle,rgba(79,142,247,0.06) 0%,transparent 60%);
+  animation: rotate 15s linear infinite;
+}
+
+/* NAVBAR for home page */
+.home-nav {
+  position: fixed !important;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  background: transparent !important;
+  border-bottom: none !important;
+  transition: background 0.3s, border 0.3s;
+}
+.home-nav.scrolled {
+  background: var(--nav-bg) !important;
+  border-bottom: 1px solid rgba(79,142,247,0.12) !important;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAVBAR ──────────────────────────────────────────────────── -->
+<nav class="navbar navbar-expand-lg navbar-dark home-nav" id="homeNav">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <i class="bi bi-map-fill me-2"></i>RoadMate Pro
+    </a>
+    <button class="navbar-toggler border-0" type="button"
+            data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto align-items-center gap-2">
+        <li class="nav-item">
+          <a class="nav-link" href="#features">Features</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#how">How It Works</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-pill" href="{{ url_for('register') }}">
+            Get Started →
+          </a>
+        </li>
+        <li class="nav-item">
+          <button id="darkToggle" onclick="toggleDark()">
+            <i class="bi bi-moon-stars-fill" id="darkIcon"></i>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="container position-relative">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+
+        <div class="hero-label">
+          <div class="dot"></div>
+          India's Smartest Road Trip Planner
+        </div>
+
+        <h1 class="hero-title">
+          Plan Smarter.<br>
+          Drive <span class="accent">Confident.</span><br>
+          Save More.
+        </h1>
+
+        <p class="hero-desc">
+          Calculate complete road trip costs — fuel, tolls &amp; hotels —
+          in seconds. Powered by real Indian highway data
+          across 126 cities and 200+ routes.
+        </p>
+
+        <div class="hero-actions">
+          <a href="{{ url_for('register') }}" class="btn-hero-primary">
+            <i class="bi bi-rocket-takeoff-fill"></i>
+            Start Planning Free
+          </a>
+          <a href="{{ url_for('login') }}" class="btn-hero-secondary">
+            <i class="bi bi-box-arrow-in-right"></i>
+            Sign In
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div>
+            <div class="hero-stat-num">126+</div>
+            <div class="hero-stat-label">Indian Cities</div>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div>
+            <div class="hero-stat-num">200+</div>
+            <div class="hero-stat-label">Highway Routes</div>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div>
+            <div class="hero-stat-num">3-in-1</div>
+            <div class="hero-stat-label">Cost Calculation</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="hero-card-wrap">
+          <div class="hero-card-3d">
+            <!-- Trip header -->
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#4f8ef7,#a78bfa);display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-map-fill text-white"></i>
+              </div>
+              <div>
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">
+                  Hyderabad → Mumbai
+                </div>
+                <div style="font-size:12px;color:var(--text2);">711 km · 3 days · Mid Budget</div>
+              </div>
+              <span class="badge ms-auto" style="background:rgba(34,211,165,0.15);color:#22d3a5;">Planned</span>
+            </div>
+
+            <!-- Mini stats -->
+            <div class="row g-2 mb-4">
+              <div class="col-4">
+                <div class="mini-stat">
+                  <div class="mini-stat-num gradient-text">47.4L</div>
+                  <div class="mini-stat-label">Fuel Needed</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="mini-stat">
+                  <div class="mini-stat-num" style="color:var(--amber);">11.8h</div>
+                  <div class="mini-stat-label">Drive Time</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="mini-stat">
+                  <div class="mini-stat-num" style="color:var(--green);">2</div>
+                  <div class="mini-stat-label">Hotel Nights</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cost breakdown -->
+            <div class="cost-pill cost-pill-fuel">
+              <span><i class="bi bi-fuel-pump-fill me-2"></i>Fuel Cost</span>
+              <span>₹4,835</span>
+            </div>
+            <div class="cost-pill cost-pill-toll">
+              <span><i class="bi bi-sign-stop-fill me-2"></i>Toll Cost</span>
+              <span>₹1,067</span>
+            </div>
+            <div class="cost-pill cost-pill-hotel">
+              <span><i class="bi bi-building me-2"></i>Accommodation</span>
+              <span>₹5,000</span>
+            </div>
+            <div class="cost-pill cost-pill-total mt-2">
+              <span style="font-family:'Syne',sans-serif;font-weight:800;">
+                <i class="bi bi-calculator-fill me-2"></i>Total Trip Cost
+              </span>
+              <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--blue);">₹10,902</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ─────────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Everything You Need</div>
+      <h2 class="section-title">Built for Indian Road Travelers</h2>
+      <p class="section-sub">
+        From cost calculation to carbon footprint — RoadMate Pro covers every aspect of your journey.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      {% for icon, title, desc, color, bg in [
+        ('bi-calculator-fill', 'Smart Cost Engine',
+         'Fuel, toll and hotel costs calculated instantly using real Indian highway data and distance bands.',
+         '#4f8ef7', 'rgba(79,142,247,0.12)'),
+        ('bi-bar-chart-fill', 'Visual Analytics',
+         'Pie charts, bar charts and line graphs showing your spending habits and travel patterns.',
+         '#a78bfa', 'rgba(167,139,250,0.12)'),
+        ('bi-file-pdf', 'PDF & Excel Reports',
+         'Download professional A4 PDF reports and 3-sheet Excel workbooks for every trip.',
+         '#f75c6e', 'rgba(247,92,110,0.12)'),
+        ('bi-arrows-expand', 'Trip Comparison',
+         'Compare any two trips side by side and see exactly which route saves you more money.',
+         '#22d3a5', 'rgba(34,211,165,0.12)'),
+        ('bi-tree-fill', 'Carbon Footprint',
+         'See how much CO₂ your trip emits and how many trees needed to offset your travel impact.',
+         '#fbbf24', 'rgba(251,191,36,0.12)'),
+        ('bi-shield-fill-check', 'Secure & Private',
+         'pbkdf2:sha256 password hashing, MySQL database and session-based authentication.',
+         '#6fa3ff', 'rgba(111,163,255,0.12)'),
+      ] %}
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:{{ bg }};color:{{ color }};">
+            <i class="bi {{ icon }}"></i>
+          </div>
+          <div class="feature-title">{{ title }}</div>
+          <div class="feature-desc">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ──────────────────────────────────────────────── -->
+<section class="formula-section" id="how">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Transparent Calculation</div>
+      <h2 class="section-title">How We Calculate Your Cost</h2>
+    </div>
+    <div class="row g-4">
+      {% for emoji, formula, result, color in [
+        ('⛽', 'Distance ÷ Mileage × Fuel Price', 'Fuel Cost', '#4f8ef7'),
+        ('🛣️', 'Distance × Toll Rate per KM', 'Toll Cost', '#f75c6e'),
+        ('🏨', 'Nights × Average Budget Band', 'Hotel Cost', '#fbbf24'),
+        ('🧮', 'Fuel + Toll + Hotel', 'Total Trip Cost', '#22d3a5'),
+      ] %}
+      <div class="col-md-6 col-lg-3">
+        <div class="formula-card">
+          <div class="formula-icon">{{ emoji }}</div>
+          <div class="formula-text">{{ formula }}</div>
+          <div class="formula-result" style="color:{{ color }};">=  {{ result }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ─────────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <div class="position-relative">
+        <div class="section-label d-inline-block">Start Today</div>
+        <h2 class="section-title mt-2 mb-3">
+          Ready to Plan Your<br>Next Road Trip?
+        </h2>
+        <p class="section-sub mb-4">
+          Join travelers who use RoadMate Pro to plan smarter,
+          budget better, and drive with confidence.
+        </p>
+        <div class="hero-actions justify-content-center">
+          <a href="{{ url_for('register') }}" class="btn-hero-primary">
+            <i class="bi bi-rocket-takeoff-fill"></i>
+            Create Free Account
+          </a>
+          <a href="{{ url_for('login') }}" class="btn-hero-secondary">
+            <i class="bi bi-box-arrow-in-right"></i>
+            I Have an Account
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────────────── -->
+<footer>
+  <div class="container text-center">
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;">
+      <span style="background:linear-gradient(135deg,#4f8ef7,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+        RoadMate Pro
+      </span>
+    </div>
+    <p style="margin-bottom:0;">
+      &copy; 2024 RoadMate Pro &mdash; Intelligent Road Trip Planning &bull;
+      126 Indian Cities &bull; Built with Python Flask
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Dark mode
+function toggleDark() {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('darkMode', isDark ? '1' : '0');
+  document.getElementById('darkIcon').className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+}
+if (localStorage.getItem('darkMode') === '1') {
+  document.body.classList.add('dark-mode');
+  document.getElementById('darkIcon').className = 'bi bi-sun-fill';
+}
+
+// Sticky navbar
+window.addEventListener('scroll', () => {
+  document.getElementById('homeNav').classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.animation = 'fadeUp 0.6s ease both';
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.feature-card, .formula-card').forEach(el => {
+  el.style.opacity = '0';
+  observer.observe(el);
+});
+
+// 3D card tilt on mouse move
+const card = document.querySelector('.hero-card-3d');
+if (card) {
+  document.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width/2) / rect.width;
+    const y = (e.clientY - rect.top - rect.height/2) / rect.height;
+    card.style.transform = `rotateY(${-8 + x*6}deg) rotateX(${4 - y*4}deg)`;
+  });
+}
+</script>
+</body>
+</html>

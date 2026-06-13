@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – RoadMate Pro{% endblock %}
+{% block content %}
+
+<!-- WELCOME HEADER -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <h2 class="fw-bold mb-1">
+      Welcome back, <span class="gradient-text">{{ user.full_name.split()[0] }}</span> 👋
+    </h2>
+    <p class="text-muted mb-0 small">
+      <i class="bi bi-calendar3 me-1"></i>
+      <span id="liveClock"></span> &bull; Your road trip command center
+    </p>
+  </div>
+  <a href="{{ url_for('plan_trip_route') }}"
+     class="btn btn-primary px-4 py-2 shadow">
+    <i class="bi bi-plus-circle-fill me-2"></i>Plan New Trip
+  </a>
+</div>
+
+<!-- STAT CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-primary text-white shadow">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-number count-up">{{ total_trips }}</div>
+          <div class="opacity-75 small fw-semibold">Total Trips</div>
+        </div>
+        <i class="bi bi-map-fill fs-2 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-success text-white shadow">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-number">₹{{ total_spent|int }}</div>
+          <div class="opacity-75 small fw-semibold">Total Spent</div>
+        </div>
+        <i class="bi bi-wallet2 fs-2 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-info text-white shadow">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-number count-up">{{ total_km|int }}</div>
+          <div class="opacity-75 small fw-semibold">KM Planned</div>
+        </div>
+        <i class="bi bi-speedometer fs-2 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-warning text-white shadow">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-number">
+            ₹{% if total_trips %}{{ (total_spent/total_trips)|round(2) }}{% else %}0{% endif %}
+          </div>
+          <div class="opacity-75 small fw-semibold">Avg Trip Cost</div>
+        </div>
+        <i class="bi bi-graph-up fs-2 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="row g-3 mb-4">
+  {% for icon, label, url, color in [
+    ('bi-bar-chart-fill', 'Analytics',    'analytics_page',  'primary'),
+    ('bi-arrows-expand',  'Compare Trips','compare_trips',   'success'),
+    ('bi-file-pdf',       'Download PDF', 'dashboard',       'danger'),
+    ('bi-file-earmark-excel','Export Excel','export_excel',  'success'),
+  ] %}
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for(url) }}"
+       class="card text-decoration-none text-center p-3 d-block">
+      <i class="bi {{ icon }} text-{{ color }} fs-2 mb-2 d-block"></i>
+      <div class="fw-semibold small">{{ label }}</div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- SEARCH BAR -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <div class="search-wrapper">
+      <i class="bi bi-search search-icon"></i>
+      <input type="text" id="tripSearch" class="form-control"
+             placeholder="Search trips by city name...">
+    </div>
+  </div>
+</div>
+
+<!-- TRIPS LIST -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">
+    <i class="bi bi-clock-history text-primary me-2"></i>Your Trips
+    <span class="badge bg-primary-subtle text-primary ms-2">{{ trips|length }}</span>
+  </h5>
+  <div class="d-flex gap-2">
+    <select class="form-select form-select-sm" style="width:auto" id="sortTrips">
+      <option value="newest">Newest First</option>
+      <option value="cheapest">Cheapest First</option>
+      <option value="expensive">Most Expensive</option>
+      <option value="distance">By Distance</option>
+    </select>
+  </div>
+</div>
+
+{% if trips %}
+<div id="tripsList">
+  {% for trip in trips %}
+  <div class="card trip-card mb-3 trip-item"
+       data-source="{{ trip.source }}"
+       data-dest="{{ trip.destination }}"
+       data-cost="{{ trip.costs.total_cost if trip.costs else 0 }}"
+       data-dist="{{ trip.distance_km }}"
+       data-date="{{ trip.created_at }}">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h6 class="fw-bold mb-1">
+            <i class="bi bi-geo-alt-fill text-success me-1"></i>{{ trip.source }}
+            <i class="bi bi-arrow-right text-primary mx-2"></i>
+            <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ trip.destination }}
+          </h6>
+          <div class="text-muted small">
+            <i class="bi bi-calendar3 me-1"></i>{{ trip.created_at[:10] }}
+            &bull; <i class="bi bi-arrows-expand me-1"></i>{{ trip.distance_km|int }} km
+            &bull; <i class="bi bi-moon me-1"></i>{{ trip.travel_days }} days
+            &bull;
+            <span class="badge bg-{{ 'success' if trip.status == 'completed' else 'primary' }}-subtle
+                               text-{{ 'success' if trip.status == 'completed' else 'primary' }}">
+              {{ trip.status|title }}
+            </span>
+          </div>
+        </div>
+        <div class="text-end">
+          {% if trip.costs %}
+          <div class="fw-bold fs-5 text-success">₹{{ trip.costs.total_cost|int }}</div>
+          <div class="text-muted small">
+            ₹{{ trip.costs.cost_per_km }}/km
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if trip.costs %}
+      <!-- Mini cost bar -->
+      <div class="row g-2 mt-2">
+        {% set t = trip.costs.total_cost %}
+        {% for lbl, val, c in [
+          ('Fuel',  trip.costs.fuel_cost,         'primary'),
+          ('Toll',  trip.costs.toll_cost,          'danger'),
+          ('Hotel', trip.costs.accommodation_cost, 'warning'),
+        ] %}
+        <div class="col-4">
+          <div class="small text-muted mb-1">{{ lbl }}: ₹{{ val|int }}</div>
+          <div class="progress" style="height:5px;">
+            <div class="progress-bar bg-{{ c }}"
+                 style="width:{{ (val/t*100)|int }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <!-- Action buttons -->
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <a href="{{ url_for('trip_detail', trip_id=trip.id) }}"
+           class="btn btn-primary btn-sm">
+          <i class="bi bi-eye me-1"></i>View
+        </a>
+        <a href="{{ url_for('download_pdf', trip_id=trip.id) }}"
+           class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-pdf me-1"></i>PDF
+        </a>
+        <a href="{{ url_for('trip_notes_page', trip_id=trip.id) }}"
+           class="btn btn-outline-warning btn-sm">
+          <i class="bi bi-journal-text me-1"></i>Notes
+        </a>
+        <a href="{{ url_for('compare_trips') }}?t1={{ trip.id }}"
+           class="btn btn-outline-info btn-sm">
+          <i class="bi bi-bar-chart me-1"></i>Compare
+        </a>
+        <form method="POST"
+              action="{{ url_for('delete_trip', trip_id=trip.id) }}"
+              onsubmit="return confirm('Delete this trip?')"
+              class="ms-auto">
+          <button class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body p-5 text-center">
+    <i class="bi bi-signpost-2 text-muted" style="font-size:4rem;"></i>
+    <h5 class="mt-3 fw-bold">No trips yet!</h5>
+    <p class="text-muted">Plan your first road trip and see the magic.</p>
+    <a href="{{ url_for('plan_trip_route') }}"
+       class="btn btn-primary px-4">
+      <i class="bi bi-plus-circle me-2"></i>Plan My First Trip
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) +
+    ' — ' + now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// Search
+document.getElementById('tripSearch').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.trip-item').forEach(card => {
+    const src  = card.dataset.source.toLowerCase();
+    const dst  = card.dataset.dest.toLowerCase();
+    card.style.display = (src.includes(q) || dst.includes(q)) ? '' : 'none';
+  });
+});
+
+// Sort
+document.getElementById('sortTrips').addEventListener('change', function() {
+  const list  = document.getElementById('tripsList');
+  const cards = [...list.querySelectorAll('.trip-item')];
+  const val   = this.value;
+  cards.sort((a, b) => {
+    if (val === 'newest')    return b.dataset.date.localeCompare(a.dataset.date);
+    if (val === 'cheapest')  return parseFloat(a.dataset.cost) - parseFloat(b.dataset.cost);
+    if (val === 'expensive') return parseFloat(b.dataset.cost) - parseFloat(a.dataset.cost);
+    if (val === 'distance')  return parseFloat(b.dataset.dist) - parseFloat(a.dataset.dist);
+  });
+  cards.forEach(c => list.appendChild(c));
+});
+</script>
+{% endblock %}

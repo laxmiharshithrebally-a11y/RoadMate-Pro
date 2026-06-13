@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% block title %}Analytics – RoadMate Pro{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Trip Analytics</h2>
+    <p class="text-muted mb-0">Full breakdown of your travel spending, habits &amp; carbon impact.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('export_excel') }}" class="btn btn-success rounded-3">
+      <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+    </a>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-3">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+{% if not analytics %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-5 text-center">
+    <i class="bi bi-bar-chart text-muted" style="font-size:4rem;"></i>
+    <h5 class="mt-3 text-muted">No trips yet to analyze!</h5>
+    <a href="{{ url_for('plan_trip_route') }}" class="btn btn-primary rounded-3 mt-2">Plan Your First Trip</a>
+  </div>
+</div>
+{% else %}
+
+<!-- STAT CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm rounded-4 bg-primary text-white">
+      <div class="card-body p-4 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fs-2 fw-bold">{{ analytics.totals.trips }}</div>
+          <div class="opacity-75">Total Trips</div>
+        </div>
+        <i class="bi bi-map-fill fs-1 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm rounded-4 bg-success text-white">
+      <div class="card-body p-4 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fs-2 fw-bold">Rs.{{ analytics.totals.spent|int }}</div>
+          <div class="opacity-75">Total Spent</div>
+        </div>
+        <i class="bi bi-wallet2 fs-1 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm rounded-4 bg-info text-white">
+      <div class="card-body p-4 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fs-2 fw-bold">{{ analytics.totals.km|int }} km</div>
+          <div class="opacity-75">KM Planned</div>
+        </div>
+        <i class="bi bi-speedometer fs-1 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm rounded-4 bg-warning text-white">
+      <div class="card-body p-4 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fs-2 fw-bold">{{ analytics.totals.fuel_l }} L</div>
+          <div class="opacity-75">Fuel Used</div>
+        </div>
+        <i class="bi bi-fuel-pump-fill fs-1 opacity-30"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <!-- PIE CHART -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Spending by Category</h5>
+        <canvas id="pieChart" height="240"></canvas>
+        <div class="mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-2" style="width:14px;height:14px;background:#1a73e8;"></div>
+              <span class="small fw-semibold">Fuel</span>
+            </div>
+            <span class="small text-muted">
+              Rs.{{ analytics.spending_by_category.amounts[0]|int }}
+              ({{ analytics.spending_by_category.pcts[0] }}%)
+            </span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-2" style="width:14px;height:14px;background:#e53935;"></div>
+              <span class="small fw-semibold">Tolls</span>
+            </div>
+            <span class="small text-muted">
+              Rs.{{ analytics.spending_by_category.amounts[1]|int }}
+              ({{ analytics.spending_by_category.pcts[1] }}%)
+            </span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-2" style="width:14px;height:14px;background:#f9a825;"></div>
+              <span class="small fw-semibold">Accommodation</span>
+            </div>
+            <span class="small text-muted">
+              Rs.{{ analytics.spending_by_category.amounts[2]|int }}
+              ({{ analytics.spending_by_category.pcts[2] }}%)
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAR CHART -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-fill text-success me-2"></i>Monthly Spending</h5>
+        {% if analytics.monthly_spending.months %}
+          <canvas id="barChart" height="220"></canvas>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-calendar3 fs-2"></i>
+            <div class="mt-2">Plan more trips to see monthly trends</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <!-- LINE CHART -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-graph-up text-info me-2"></i>Cost Trend Per Trip</h5>
+        {% if analytics.cost_trend.routes %}
+          <canvas id="lineChart" height="200"></canvas>
+        {% else %}
+          <div class="text-center py-4 text-muted">Need more trips to show trend.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP CITIES -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-pin-map-fill text-danger me-2"></i>Most Visited Cities</h5>
+        {% if analytics.city_stats.top_cities %}
+          {% for c in analytics.city_stats.top_cities %}
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary rounded-circle"
+                    style="width:26px;height:26px;line-height:18px;">{{ loop.index }}</span>
+              <span class="fw-semibold">{{ c.city }}</span>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">
+              {{ c.count }} trip{% if c.count > 1 %}s{% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted text-center py-3">No data yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CARBON FOOTPRINT -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+      <h5 class="fw-bold mb-0"><i class="bi bi-tree-fill text-success me-2"></i>Carbon Footprint Estimate</h5>
+      <div class="text-end">
+        <div class="fw-bold text-success fs-4">{{ analytics.carbon.total_co2_kg }} kg CO₂</div>
+        <small class="text-muted">≈ {{ analytics.carbon.total_trees }} trees needed to offset</small>
+      </div>
+    </div>
+    {% if analytics.carbon.trips %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Route</th>
+            <th class="text-center">Fuel (L)</th>
+            <th class="text-center">CO₂ (kg)</th>
+            <th class="text-center">Trees to Offset</th>
+            <th class="text-center">Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in analytics.carbon.trips %}
+          <tr>
+            <td class="fw-semibold">{{ c.route }}</td>
+            <td class="text-center">{{ c.litres }}</td>
+            <td class="text-center fw-bold text-danger">{{ c.co2_kg }}</td>
+            <td class="text-center text-success">🌳 {{ c.trees }}</td>
+            <td class="text-center">
+              {% if c.co2_kg < 50 %}
+                <span class="badge bg-success-subtle text-success">Low</span>
+              {% elif c.co2_kg < 150 %}
+                <span class="badge bg-warning-subtle text-warning">Medium</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger">High</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-3 p-3 bg-success-subtle rounded-3">
+      <small class="text-success fw-semibold">
+        💡 Tip: Carpooling or using a fuel-efficient vehicle can cut your CO₂ by up to 50%.
+        Planting {{ analytics.carbon.total_trees }} trees would fully offset all your trips!
+      </small>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- TOP ROUTES -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-warning me-2"></i>Most Expensive Routes</h5>
+    <div class="row g-3">
+      {% for r in analytics.city_stats.top_routes %}
+      <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-3">
+          <div>
+            <span class="badge bg-warning-subtle text-warning me-2">{{ loop.index }}</span>
+            <span class="fw-semibold">{{ r.route }}</span>
+          </div>
+          <span class="fw-bold text-success">Rs.{{ r.cost|int }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="col-12 text-muted text-center py-2">No route data yet</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if analytics %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const pieAmounts = {{ analytics.spending_by_category.amounts | tojson }};
+const piePcts    = {{ analytics.spending_by_category.pcts    | tojson }};
+const pieCats    = {{ analytics.spending_by_category.cats    | tojson }};
+const pieColors  = {{ analytics.spending_by_category.colors  | tojson }};
+
+const barMonths  = {{ analytics.monthly_spending.months  | tojson }};
+const barAmounts = {{ analytics.monthly_spending.amounts | tojson }};
+
+const lineRoutes  = {{ analytics.cost_trend.routes  | tojson }};
+const lineAmounts = {{ analytics.cost_trend.amounts | tojson }};
+
+// PIE CHART
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: pieCats,
+    datasets: [{
+      data: pieAmounts,
+      backgroundColor: pieColors,
+      borderWidth: 3,
+      borderColor: '#fff',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` Rs.${ctx.raw.toLocaleString('en-IN')} (${piePcts[ctx.dataIndex]}%)`
+        }
+      }
+    }
+  }
+});
+
+// BAR CHART
+if (barMonths && barMonths.length > 0) {
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: barMonths,
+      datasets: [{
+        label: 'Monthly Spend (Rs)',
+        data: barAmounts,
+        backgroundColor: '#1a73e8aa',
+        borderColor: '#1a73e8',
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          ticks: { callback: v => 'Rs.' + v.toLocaleString('en-IN') },
+          grid:  { color: '#f0f0f0' }
+        }
+      }
+    }
+  });
+}
+
+// LINE CHART
+if (lineRoutes && lineRoutes.length > 0) {
+  new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+      labels: lineRoutes,
+      datasets: [{
+        label: 'Trip Cost (Rs)',
+        data: lineAmounts,
+        backgroundColor: '#1a73e820',
+        borderColor: '#1a73e8',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#1a73e8',
+        pointRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          ticks: { callback: v => 'Rs.' + v.toLocaleString('en-IN') },
+          grid:  { color: '#f0f0f0' }
+        },
+        x: { ticks: { maxRotation: 30 } }
+      }
+    }
+  });
+}
+</script>
+{% endif %}
+{% endblock %}

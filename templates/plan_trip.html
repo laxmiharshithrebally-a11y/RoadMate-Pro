@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Plan a Trip – RoadMate Pro{% endblock %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Plan Trip</li>
+  </ol>
+</nav>
+
+<h2 class="fw-bold mb-1">
+  <i class="bi bi-map-fill text-primary me-2"></i>Plan a New Trip
+</h2>
+<p class="text-muted mb-4">Fill in the details and see your cost update live in real time.</p>
+
+<div class="row g-4">
+
+  <!-- FORM -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-body p-4">
+        <form method="POST" id="tripForm">
+
+          <!-- SOURCE & DESTINATION -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-geo-alt-fill text-success me-1"></i>Source City
+              </label>
+              <select name="source" class="form-select trip-input" required>
+                <option value="">Select source city...</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i>Destination City
+              </label>
+              <select name="destination" class="form-select trip-input" required>
+                <option value="">Select destination city...</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- DAYS & MILEAGE -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label">
+                <i class="bi bi-calendar3 me-1"></i>Travel Days
+              </label>
+              <input type="number" name="travel_days" id="travel_days"
+                     class="form-control trip-input" min="1" max="30"
+                     value="2" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">
+                <i class="bi bi-speedometer me-1"></i>Mileage (km/L)
+              </label>
+              <input type="number" name="vehicle_mileage" id="mileage"
+                     class="form-control trip-input" min="1" max="50"
+                     value="15" step="0.1" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">
+                <i class="bi bi-fuel-pump-fill me-1"></i>Fuel Price (₹/L)
+              </label>
+              <input type="number" name="fuel_price" id="fuel_price"
+                     class="form-control trip-input" min="1" max="200"
+                     value="102" step="0.1" required>
+            </div>
+          </div>
+
+          <!-- BUDGET BAND -->
+          <div class="mb-4">
+            <label class="form-label">
+              <i class="bi bi-building me-1"></i>Accommodation Budget
+            </label>
+            <div class="row g-2">
+              {% for band, (lo, hi) in budget_bands.items() %}
+              <div class="col-6 col-md-3">
+                <input type="radio" class="btn-check trip-input"
+                       name="accommodation_budget"
+                       id="band_{{ band }}" value="{{ band }}"
+                       {% if band == 'mid' %}checked{% endif %}>
+                <label class="btn btn-outline-primary w-100 py-3"
+                       for="band_{{ band }}">
+                  <div class="fw-bold text-capitalize">{{ band }}</div>
+                  <div style="font-size:11px;" class="opacity-75">
+                    ₹{{ lo }}–{{ hi }}/night
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-3 fs-5 fw-semibold">
+            <i class="bi bi-calculator-fill me-2"></i>Calculate & Plan Trip
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE COST PREVIEW -->
+  <div class="col-lg-5">
+
+    <!-- Live Cost Box -->
+    <div class="live-cost-box mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-semibold opacity-75">
+          <i class="bi bi-lightning-charge-fill me-1"></i>Live Cost Preview
+        </div>
+        <span class="badge bg-white text-primary">Real-time</span>
+      </div>
+      <div class="live-cost-number mb-1" id="liveTotal">₹0</div>
+      <div class="opacity-75 small">Estimated total cost</div>
+      <hr class="border-white opacity-25 my-3">
+      <div class="row g-2 text-center">
+        <div class="col-4">
+          <div class="small opacity-75">Fuel</div>
+          <div class="fw-bold" id="liveFuel">₹0</div>
+        </div>
+        <div class="col-4">
+          <div class="small opacity-75">Toll</div>
+          <div class="fw-bold" id="liveToll">₹0</div>
+        </div>
+        <div class="col-4">
+          <div class="small opacity-75">Hotel</div>
+          <div class="fw-bold" id="liveHotel">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trip Info Preview -->
+    <div class="card mb-3">
+      <div class="card-body p-3">
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-info-circle text-primary me-2"></i>Trip Preview
+        </h6>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Est. Distance</span>
+          <span class="fw-semibold small" id="prevDist">Select cities</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Drive Duration</span>
+          <span class="fw-semibold small" id="prevDur">—</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Fuel Needed</span>
+          <span class="fw-semibold small" id="prevFuelL">—</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Hotel Nights</span>
+          <span class="fw-semibold small" id="prevNights">—</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted small">Cost per KM</span>
+          <span class="fw-semibold small" id="prevPerKm">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget Guide -->
+    <div class="card">
+      <div class="card-body p-3">
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-bookmark-fill text-warning me-2"></i>Budget Guide
+        </h6>
+        {% for band, (lo, hi) in budget_bands.items() %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-{{ 'secondary' if band=='budget' else 'primary' if band=='mid' else 'warning' if band=='premium' else 'danger' }}-subtle
+                       text-{{ 'secondary' if band=='budget' else 'primary' if band=='mid' else 'warning' if band=='premium' else 'danger' }}
+                       text-capitalize px-3 py-2">{{ band }}</span>
+          <span class="fw-semibold small">₹{{ lo }} – ₹{{ hi }}/night</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Distance lookup (top routes for live preview)
+const DISTANCES = {
+  'hyderabad_mumbai':711,'hyderabad_bangalore':570,'hyderabad_chennai':630,
+  'hyderabad_delhi':1500,'hyderabad_pune':559,'hyderabad_kolkata':1500,
+  'mumbai_delhi':1415,'mumbai_bangalore':984,'mumbai_chennai':1335,
+  'mumbai_pune':149,'mumbai_goa':597,'mumbai_ahmedabad':524,
+  'delhi_bangalore':2150,'delhi_chennai':2200,'delhi_jaipur':268,
+  'delhi_agra':200,'delhi_chandigarh':245,'delhi_amritsar':450,
+  'bangalore_chennai':346,'bangalore_mysore':143,'bangalore_goa':561,
+  'chennai_coimbatore':495,'chennai_madurai':460,
+  'kolkata_bhubaneswar':440,'kolkata_patna':550,
+};
+const BAND_AVG = {budget:1000,mid:2500,premium:6500,luxury:20000};
+
+function getDistance(src, dst) {
+  const k1 = src+'_'+dst, k2 = dst+'_'+src;
+  return DISTANCES[k1] || DISTANCES[k2] || null;
+}
+
+function updateLivePreview() {
+  const src   = document.querySelector('[name=source]')?.value?.toLowerCase().replace(/ /g,'') || '';
+  const dst   = document.querySelector('[name=destination]')?.value?.toLowerCase().replace(/ /g,'') || '';
+  const days  = parseFloat(document.getElementById('travel_days')?.value) || 2;
+  const mil   = parseFloat(document.getElementById('mileage')?.value)     || 15;
+  const fp    = parseFloat(document.getElementById('fuel_price')?.value)  || 102;
+  const band  = document.querySelector('[name=accommodation_budget]:checked')?.value || 'mid';
+
+  const dist  = getDistance(src, dst);
+  if (!dist) {
+    document.getElementById('liveTotal').textContent = '₹—';
+    document.getElementById('prevDist').textContent  = 'Select cities above';
+    return;
+  }
+
+  const nights     = Math.max(0, days - 1);
+  const fuelL      = dist / mil;
+  const fuelCost   = fuelL * fp;
+  const tollRate   = dist > 300 ? 1.8 : dist > 100 ? 1.5 : 1.0;
+  const tollCost   = dist * tollRate;
+  const hotelCost  = nights * BAND_AVG[band];
+  const total      = fuelCost + tollCost + hotelCost;
+  const perKm      = total / dist;
+
+  document.getElementById('liveTotal').textContent  = '₹' + Math.round(total).toLocaleString('en-IN');
+  document.getElementById('liveFuel').textContent   = '₹' + Math.round(fuelCost).toLocaleString('en-IN');
+  document.getElementById('liveToll').textContent   = '₹' + Math.round(tollCost).toLocaleString('en-IN');
+  document.getElementById('liveHotel').textContent  = '₹' + Math.round(hotelCost).toLocaleString('en-IN');
+  document.getElementById('prevDist').textContent   = dist + ' km';
+  document.getElementById('prevDur').textContent    = Math.round(dist/60*10)/10 + ' hrs';
+  document.getElementById('prevFuelL').textContent  = fuelL.toFixed(1) + ' litres';
+  document.getElementById('prevNights').textContent = nights + ' night(s)';
+  document.getElementById('prevPerKm').textContent  = '₹' + perKm.toFixed(2) + '/km';
+}
+
+document.querySelectorAll('.trip-input').forEach(el =>
+  el.addEventListener('change', updateLivePreview));
+document.querySelectorAll('input.trip-input').forEach(el =>
+  el.addEventListener('input', updateLivePreview));
+updateLivePreview();
+</script>
+{% endblock %}

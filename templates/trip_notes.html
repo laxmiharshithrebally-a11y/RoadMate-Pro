@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Notes – {{ trip.source }} to {{ trip.destination }}{% endblock %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('trip_detail', trip_id=trip.id) }}">{{ trip.source }} → {{ trip.destination }}</a></li>
+    <li class="breadcrumb-item active">Notes & Checklist</li>
+  </ol>
+</nav>
+
+<h2 class="fw-bold mb-1"><i class="bi bi-journal-text text-primary me-2"></i>Trip Notes & Packing Checklist</h2>
+<p class="text-muted mb-4">{{ trip.source }} → {{ trip.destination }} &bull; {{ trip.travel_days }} days</p>
+
+<div class="row g-4">
+
+  <!-- NOTES -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-pencil-square text-primary me-2"></i>Personal Notes</h5>
+        <form method="POST" action="{{ url_for('save_trip_notes', trip_id=trip.id) }}">
+          <textarea name="notes" rows="12" class="form-control rounded-3 mb-3"
+                    placeholder="Add your notes here...&#10;&#10;E.g.&#10;- Book hotel in advance&#10;- Carry extra cash for tolls&#10;- Leave by 6 AM to avoid traffic">{{ trip.get('notes', '') }}</textarea>
+          <button type="submit" class="btn btn-primary rounded-3 w-100">
+            <i class="bi bi-save me-2"></i>Save Notes
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- PACKING CHECKLIST -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-check2-square text-success me-2"></i>Packing Checklist</h5>
+          <span class="badge bg-success rounded-pill" id="packedCount">0 / {{ checklist|length }}</span>
+        </div>
+
+        <div class="progress mb-3" style="height:8px;">
+          <div class="progress-bar bg-success" id="packProgress" style="width:0%;border-radius:6px;"></div>
+        </div>
+
+        <div style="max-height:400px;overflow-y:auto;">
+          {% set categories = checklist | map(attribute='category') | unique | list %}
+          {% for cat in categories %}
+          <div class="mb-3">
+            <div class="text-muted fw-semibold small mb-2 text-uppercase">{{ cat }}</div>
+            {% for item in checklist if item.category == cat %}
+            <div class="form-check mb-2 bg-light rounded-3 p-2 ps-4">
+              <input class="form-check-input pack-check" type="checkbox"
+                     id="item_{{ loop.index }}"
+                     {% if item.item in (trip.get('packed_items') or []) %}checked{% endif %}
+                     onchange="updateProgress()">
+              <label class="form-check-label" for="item_{{ loop.index }}">
+                {{ item.item }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="d-grid mt-3">
+          <button class="btn btn-outline-success rounded-3" onclick="markAllPacked()">
+            <i class="bi bi-check-all me-2"></i>Mark All Packed
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateProgress() {
+  const all    = document.querySelectorAll('.pack-check').length;
+  const packed = document.querySelectorAll('.pack-check:checked').length;
+  const pct    = all ? Math.round(packed / all * 100) : 0;
+  document.getElementById('packProgress').style.width = pct + '%';
+  document.getElementById('packedCount').textContent  = packed + ' / ' + all;
+}
+function markAllPacked() {
+  document.querySelectorAll('.pack-check').forEach(c => c.checked = true);
+  updateProgress();
+}
+updateProgress();
+</script>
+{% endblock %}

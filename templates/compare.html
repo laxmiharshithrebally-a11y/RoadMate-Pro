@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Compare Trips – RoadMate Pro{% endblock %}
+{% block content %}
+
+<h2 class="fw-bold mb-4"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Compare Trips</h2>
+
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body p-4">
+    <form method="GET" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Trip 1</label>
+        <select name="t1" class="form-select rounded-3" required>
+          <option value="">Select a trip...</option>
+          {% for t in trips %}
+          <option value="{{ t.id }}" {% if trip1 and trip1.id==t.id %}selected{% endif %}>
+            {{ t.source }} → {{ t.destination }} ({{ t.created_at[:10] }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Trip 2</label>
+        <select name="t2" class="form-select rounded-3" required>
+          <option value="">Select a trip...</option>
+          {% for t in trips %}
+          <option value="{{ t.id }}" {% if trip2 and trip2.id==t.id %}selected{% endif %}>
+            {{ t.source }} → {{ t.destination }} ({{ t.created_at[:10] }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100 rounded-3 btn-lg">
+          <i class="bi bi-bar-chart me-1"></i>Compare
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if trips|length < 2 %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-5 text-center">
+    <i class="bi bi-signpost-2 text-muted" style="font-size:4rem;"></i>
+    <h5 class="mt-3 text-muted">You need at least 2 trips to compare!</h5>
+    <p class="text-muted">Plan more trips first, then come back to compare them.</p>
+    <a href="{{ url_for('plan_trip_route') }}" class="btn btn-primary rounded-3 px-4">
+      <i class="bi bi-plus-circle me-2"></i>Plan a Trip
+    </a>
+  </div>
+</div>
+
+{% elif trip1 and trip2 %}
+<!-- WINNER BANNER -->
+<div class="alert border-0 rounded-4 shadow-sm mb-4 text-center py-3
+  {% if trip1.costs.total_cost < trip2.costs.total_cost %}alert-success
+  {% elif trip2.costs.total_cost < trip1.costs.total_cost %}alert-success
+  {% else %}alert-info{% endif %}">
+  <span class="fw-bold fs-5">
+    {% if trip1.costs.total_cost < trip2.costs.total_cost %}
+      🏆 {{ trip1.source }} → {{ trip1.destination }} is cheaper by
+      <strong>Rs.{{ trip2.costs.total_cost - trip1.costs.total_cost|int }}</strong>
+    {% elif trip2.costs.total_cost < trip1.costs.total_cost %}
+      🏆 {{ trip2.source }} → {{ trip2.destination }} is cheaper by
+      <strong>Rs.{{ trip1.costs.total_cost - trip2.costs.total_cost|int }}</strong>
+    {% else %}
+      🤝 Both trips cost exactly the same!
+    {% endif %}
+  </span>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-4">
+
+    <!-- TRIP HEADERS -->
+    <div class="row g-0 text-center mb-3">
+      <div class="col-5">
+        <div class="bg-primary text-white rounded-3 p-3">
+          <div class="fw-bold fs-5">{{ trip1.source }} → {{ trip1.destination }}</div>
+          <small class="opacity-75">{{ trip1.created_at[:10] }} &bull; {{ trip1.accommodation_budget.title() }}</small>
+        </div>
+      </div>
+      <div class="col-2 d-flex align-items-center justify-content-center">
+        <span class="badge bg-secondary rounded-circle fs-5 p-3">VS</span>
+      </div>
+      <div class="col-5">
+        <div class="bg-success text-white rounded-3 p-3">
+          <div class="fw-bold fs-5">{{ trip2.source }} → {{ trip2.destination }}</div>
+          <small class="opacity-75">{{ trip2.created_at[:10] }} &bull; {{ trip2.accommodation_budget.title() }}</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARISON ROWS -->
+    {% for label, v1, v2, prefix, icon in [
+      ('Distance',        trip1.distance_km,              trip2.distance_km,              '',    'bi-arrows-expand'),
+      ('Travel Days',     trip1.travel_days,               trip2.travel_days,               '',    'bi-calendar3'),
+      ('Hotel Nights',    trip1.costs.nights,              trip2.costs.nights,              '',    'bi-moon'),
+      ('Fuel Cost',       trip1.costs.fuel_cost,           trip2.costs.fuel_cost,           'Rs.', 'bi-fuel-pump-fill'),
+      ('Toll Cost',       trip1.costs.toll_cost,           trip2.costs.toll_cost,           'Rs.', 'bi-sign-stop-fill'),
+      ('Accommodation',   trip1.costs.accommodation_cost,  trip2.costs.accommodation_cost,  'Rs.', 'bi-building'),
+      ('TOTAL COST',      trip1.costs.total_cost,          trip2.costs.total_cost,          'Rs.', 'bi-cash-stack'),
+      ('Cost per KM',     trip1.costs.cost_per_km,         trip2.costs.cost_per_km,         'Rs.', 'bi-speedometer'),
+    ] %}
+    <div class="row g-0 align-items-center py-3 border-bottom">
+      <!-- Trip 1 value -->
+      <div class="col-4 text-end pe-3">
+        <span class="fw-bold fs-5
+          {% if v1|float < v2|float %}text-success
+          {% elif v1|float > v2|float %}text-danger
+          {% else %}text-secondary{% endif %}">
+          {{ prefix }}{% if prefix %}{{ v1|float|int }}{% else %}{{ v1 }}{% endif %}
+          {% if prefix == '' and label == 'Distance' %} km{% endif %}
+        </span>
+        {% if v1|float < v2|float %}
+          <span class="badge bg-success ms-1">✓ Lower</span>
+        {% endif %}
+      </div>
+      <!-- Label -->
+      <div class="col-4 text-center">
+        <div class="text-muted fw-semibold small">
+          <i class="bi {{ icon }} me-1"></i>{{ label }}
+        </div>
+      </div>
+      <!-- Trip 2 value -->
+      <div class="col-4 text-start ps-3">
+        <span class="fw-bold fs-5
+          {% if v2|float < v1|float %}text-success
+          {% elif v2|float > v1|float %}text-danger
+          {% else %}text-secondary{% endif %}">
+          {{ prefix }}{% if prefix %}{{ v2|float|int }}{% else %}{{ v2 }}{% endif %}
+          {% if prefix == '' and label == 'Distance' %} km{% endif %}
+        </span>
+        {% if v2|float < v1|float %}
+          <span class="badge bg-success ms-1">✓ Lower</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- VIEW BUTTONS -->
+    <div class="row g-3 mt-3">
+      <div class="col-6 text-center">
+        <a href="{{ url_for('trip_detail', trip_id=trip1.id) }}"
+           class="btn btn-outline-primary rounded-3 px-4">
+          <i class="bi bi-eye me-1"></i>View Full Trip 1
+        </a>
+      </div>
+      <div class="col-6 text-center">
+        <a href="{{ url_for('trip_detail', trip_id=trip2.id) }}"
+           class="btn btn-outline-success rounded-3 px-4">
+          <i class="bi bi-eye me-1"></i>View Full Trip 2
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-5 text-center">
+    <i class="bi bi-arrow-left-right text-primary" style="font-size:4rem;"></i>
+    <h5 class="mt-3">Select two trips above to compare them</h5>
+    <p class="text-muted">You have <strong>{{ trips|length }}</strong> trip(s) available to compare.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
